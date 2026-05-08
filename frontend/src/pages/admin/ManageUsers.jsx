@@ -1,6 +1,12 @@
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { toast } from 'react-toastify'
 import api from '../../api/axios'
+
+const roleBadge = {
+  admin:   'bg-violet-100 text-violet-700',
+  teacher: 'bg-amber-100 text-amber-700',
+  student: 'bg-sky-100 text-sky-700',
+}
 
 export default function ManageUsers() {
   const [users, setUsers] = useState([])
@@ -16,49 +22,42 @@ export default function ManageUsers() {
 
   const deleteUser = async (id) => {
     if (!window.confirm('Delete this user?')) return
-    try {
-      await api.delete(`/admin/users/${id}`)
-      toast.success('User deleted')
-      fetchUsers()
-    } catch {
-      toast.error('Failed to delete user')
-    }
+    try { await api.delete(`/admin/users/${id}`); toast.success('Deleted'); fetchUsers() }
+    catch { toast.error('Failed to delete') }
   }
 
   const toggleActive = async (user) => {
-    try {
-      await api.patch(`/admin/users/${user._id}`, { active: !user.active })
-      fetchUsers()
-    } catch {
-      toast.error('Failed to update user')
-    }
+    try { await api.patch(`/admin/users/${user._id}`, { active: !user.active }); fetchUsers() }
+    catch { toast.error('Failed to update') }
   }
 
   const filtered = users.filter((u) => {
     const matchRole = filter === 'all' || u.role === filter
-    const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase())
+    const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase())
     return matchRole && matchSearch
   })
 
   return (
     <>
-      <div className="topbar">
-        <h1>👥 Manage Users</h1>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">👥 Manage Users</h1>
+          <p className="text-slate-500 text-sm mt-1">{users.length} total users</p>
+        </div>
       </div>
 
-      <div className="card">
-        <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+        <div className="flex flex-wrap gap-3 mb-6">
           <input
-            style={{ flex: 1, padding: '8px 14px', border: '1px solid #ddd', borderRadius: 8, minWidth: 200 }}
             placeholder="Search by name or email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            className="flex-1 min-w-48 px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
           />
           <select
-            style={{ padding: '8px 14px', border: '1px solid #ddd', borderRadius: 8 }}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
+            className="px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
           >
             <option value="all">All Roles</option>
             <option value="student">Students</option>
@@ -68,52 +67,47 @@ export default function ManageUsers() {
         </div>
 
         {loading ? (
-          <p className="text-muted">Loading...</p>
+          <p className="text-slate-400 text-sm">Loading...</p>
         ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th>Joined</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((u) => (
-                <tr key={u._id}>
-                  <td>{u.name}</td>
-                  <td>{u.email}</td>
-                  <td>
-                    <span className={`badge ${u.role === 'admin' ? 'badge-blue' : u.role === 'teacher' ? 'badge-yellow' : 'badge-green'}`}>
-                      {u.role}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`badge ${u.active ? 'badge-green' : 'badge-red'}`}>
-                      {u.active ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  <td>{new Date(u.createdAt).toLocaleDateString()}</td>
-                  <td>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button
-                        className={`btn btn-sm ${u.active ? 'btn-warning' : 'btn-success'}`}
-                        onClick={() => toggleActive(u)}
-                      >
-                        {u.active ? 'Deactivate' : 'Activate'}
-                      </button>
-                      <button className="btn btn-danger btn-sm" onClick={() => deleteUser(u._id)}>
-                        Delete
-                      </button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-100">
+                  {['Name', 'Email', 'Role', 'Status', 'Joined', 'Actions'].map((h) => (
+                    <th key={h} className="text-left py-3 px-4 text-slate-500 font-semibold">{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filtered.map((u) => (
+                  <tr key={u._id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                    <td className="py-3 px-4 font-semibold text-slate-700">{u.name}</td>
+                    <td className="py-3 px-4 text-slate-500">{u.email}</td>
+                    <td className="py-3 px-4">
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${roleBadge[u.role]}`}>{u.role}</span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${u.active ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                        {u.active ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-slate-500">{new Date(u.createdAt).toLocaleDateString()}</td>
+                    <td className="py-3 px-4">
+                      <div className="flex gap-2">
+                        <button onClick={() => toggleActive(u)}
+                          className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${u.active ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
+                          {u.active ? 'Deactivate' : 'Activate'}
+                        </button>
+                        <button onClick={() => deleteUser(u._id)} className="text-xs bg-red-100 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-200 transition-colors">
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </>
